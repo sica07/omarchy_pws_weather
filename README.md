@@ -1,6 +1,10 @@
-# Omarchy PWS Weather
+<h1 align="center">Omarchy PWS Weather</h1>
 
-**Your personal weather station, right in the Omarchy bar.**
+<p align="center"><strong>Your personal weather station, right in the Omarchy bar.</strong></p>
+
+<p align="center">
+  <img src="images/now_expanded.png" alt="Expanded current weather view showing station measurements and the hourly outlook">
+</p>
 
 Omarchy PWS Weather is designed primarily for **personal weather stations (PWS) registered with Weather Underground**. Connect a station ID and your Weather Underground / Weather.com API key to see the station's current measurements alongside an hourly outlook and a seven-day forecast.
 
