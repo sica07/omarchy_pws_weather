@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "id": "wunderground.extended",
+  "name": "Wunderground Extended",
+  "version": "0.11.0",
+  "author": "Omarchy port based on work by Rafal Liwoch and Kevin Donnelly",
+  "license": "GPL-2.0-or-later",
+  "homepage": "https://github.com/rliwoch/plasmoid-wunderground-extended",
+  "description": "Weather Underground PWS observations with a stationless Open-Meteo fallback for the Omarchy bar.",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Wunderground Extended",
+    "description": "PWS observations, hourly outlook, and seven-day forecast",
+    "category": "Info",
+    "allowMultiple": false,
+    "defaultSection": "center",
+    "defaults": {
+      "stationId": "",
+      "apiKey": "",
+      "meteoblueApiKey": "",
+      "openMeteoLocation": "",
+      "openMeteoLatitude": "",
+      "openMeteoLongitude": "",
+      "units": "metric",
+      "refreshSeconds": 60,
+      "forecastMinutes": 30,
+      "travelMode": false,
+      "showConditions": false
+    },
+    "schema": [
+      {
+        "key": "stationId",
+        "type": "string",
+        "label": "PWS station ID",
+        "defaultValue": "",
+        "description": "Case-sensitive personal weather station ID, used when a Weather.com API key is configured."
+      },
+      {
+        "key": "apiKey",
+        "type": "string",
+        "label": "Weather.com API key",
+        "defaultValue": "",
+        "description": "Your Weather Underground/Weather.com API key. Leave empty to use the Open-Meteo location mode."
+      },
+      {
+        "key": "meteoblueApiKey",
+        "type": "string",
+        "label": "Meteoblue API key (optional)",
+        "defaultValue": "",
+        "description": "When set, Meteoblue replaces the default keyless Open-Meteo forecast. It stays in the local Omarchy shell configuration."
+      },
+      {
+        "key": "units",
+        "type": "enum",
+        "label": "Units",
+        "options": ["metric", "imperial", "uk_hybrid"],
+        "defaultValue": "metric"
+      },
+      {
+        "key": "refreshSeconds",
+        "type": "integer",
+        "label": "Observation refresh (seconds)",
+        "min": 15,
+        "max": 3600,
+        "step": 15,
+        "defaultValue": 60
+      },
+      {
+        "key": "forecastMinutes",
+        "type": "integer",
+        "label": "Forecast refresh (minutes)",
+        "min": 5,
+        "max": 360,
+        "step": 5,
+        "defaultValue": 30
+      },
+      {
+        "key": "travelMode",
+        "type": "boolean",
+        "label": "Traveling mode",
+        "defaultValue": false,
+        "description": "Use public-IP geolocation to select a nearby active PWS instead of the home station."
+      },
+      {
+        "key": "showConditions",
+        "type": "boolean",
+        "label": "Show condition text in bar",
+        "defaultValue": false
+      }
+    ]
+  }
+}
