@@ -1,8 +1,8 @@
-# Wunderground Extended for Omarchy
+# Omarchy PWS Weather
 
 **Your personal weather station, right in the Omarchy bar.**
 
-Wunderground Extended is designed primarily for **personal weather stations (PWS) registered with Weather Underground**. Connect a station ID and your Weather Underground / Weather.com API key to see the station's current measurements alongside an hourly outlook and a seven-day forecast.
+Omarchy PWS Weather is designed primarily for **personal weather stations (PWS) registered with Weather Underground**. Connect a station ID and your Weather Underground / Weather.com API key to see the station's current measurements alongside an hourly outlook and a seven-day forecast.
 
 **No station or API key?** Leave the Weather.com key empty to use the built-in **Open-Meteo fallback**, with current weather and forecasts for a selected location or your approximate public-IP location.
 
@@ -34,7 +34,7 @@ With a Meteoblue key, the plugin requests the `basic-1h` and `basic-day` package
 For a downloaded copy, place the plugin files directly in:
 
 ```text
-~/.config/omarchy/plugins/wunderground.extended/
+~/.config/omarchy/plugins/omarchy_pws_weather/
 ├── manifest.json
 ├── BarWidget.qml
 ├── Panel.qml
@@ -46,13 +46,27 @@ For a downloaded copy, place the plugin files directly in:
 Then validate and enable it:
 
 ```bash
-omarchy plugin validate ~/.config/omarchy/plugins/wunderground.extended
-omarchy plugin enable wunderground.extended centerEnd
+omarchy plugin validate ~/.config/omarchy/plugins/omarchy_pws_weather
+omarchy plugin enable omarchy_pws_weather centerEnd
 ```
 
-`centerEnd` places the widget beside the center section. You can move it later through Omarchy's bar settings. The plugin ID is `wunderground.extended` and only one instance is supported.
+`centerEnd` places the widget beside the center section. You can move it later through Omarchy's bar settings. The plugin ID is `omarchy_pws_weather` and only one instance is supported.
 
 ## First-time setup
+
+### Where to get API keys and station details
+
+| Provider / setting | Where to get it | What to enter |
+| --- | --- | --- |
+| Weather Underground / Weather.com API key | Sign in to [Weather Underground → API Keys](https://www.wunderground.com/member/api-keys), then create or copy your key. See the provider's [PWS API-key instructions](https://support.weather.com/s/article/How-to-Get-a-Copy-of-Your-Personal-Weather-Station-PWS-Data). | Paste the API key into **Weather Underground / Weather.com API key** (`apiKey`). If your account cannot issue a key, use the Open-Meteo fallback. |
+| Weather Underground station ID | Open [Weather Underground → My Devices](https://www.wunderground.com/member/devices) and find your registered station. | Copy the case-sensitive **Station ID** into **Weather Underground station ID** (`stationId`). The station ID is an identifier, not a secret. |
+| Meteoblue API key (optional) | Follow [Meteoblue → API Access](https://docs.meteoblue.com/en/weather-apis/introduction/overview). The provider explains how to contact them for an API-key trial and ongoing access. | Request access to the Forecast API packages **basic-1h** and **basic-day**, then paste the issued key into **Meteoblue API key** (`meteoblueApiKey`). A website account alone is not an API key. |
+| Open-Meteo | No key to obtain for the public endpoints used here; see [Open-Meteo's access information](https://open-meteo.com/en/about). | Leave the Weather.com key empty for stationless mode, or leave the Meteoblue key empty for default forecasts. Open-Meteo's free API is intended for non-commercial use and is subject to its usage limits. |
+| IPinfo (automatic location) | No token to obtain for this plugin. | The plugin calls the public `ipinfo.io/json` endpoint and has no IPinfo token setting. |
+
+The Weather Underground **API key** is different from the **Station Key / upload password** used by weather-station hardware. This plugin reads weather data and does not need that upload secret or your provider account password. Meteoblue signing secrets are also not used by this implementation; it supports direct API-key requests.
+
+The Weather Underground account pages require sign-in. Enter credentials only in the local widget settings; never add real keys to this README or commit your shell configuration.
 
 ### Connect your personal weather station
 
@@ -80,6 +94,8 @@ The bar shows a weather icon and the current temperature. **Show condition text 
 
 ### Current summary and expanded measurements
 
+![Expanded current weather view showing personal weather station measurements and the hourly outlook](images/now_expanded.png)
+
 The popup header shows the current temperature, feels-like temperature, today's forecast high and low, and the station/location name. PWS mode also identifies the active station; stationless mode is labeled **Open-Meteo**.
 
 Click **More** to expand the measurement rows:
@@ -100,6 +116,8 @@ A warning line can highlight strong gusts, heavy rain, high UV, or significant c
 
 ### Now: hourly outlook
 
+![Compact Now view with current temperature, hourly temperature graph, and precipitation forecast](images/now_compact.png)
+
 The **Now** tab plots up to 24 hourly forecast points:
 
 - A temperature curve with a number at each point and a gradient from cooler to warmer values.
@@ -112,11 +130,15 @@ The graph is a forecast, not a history of your station's measurements.
 
 ### 7 days: daily forecast
 
+![Seven-day forecast with daily low and high temperatures, rain probabilities, and precipitation amounts](images/7_days.png)
+
 The **7 days** tab shows today and the following forecast days, up to seven days in total. Each row includes a day label, weather icon, and low/high temperatures. Floating temperature bars share a common scale, making warmer and cooler days easy to compare. Rain probability and precipitation quantity appear when greater than zero. Hover over a row for its condition description.
 
 Today's sunrise and sunset appear below the forecasts when available. In PWS mode, the station ID in the footer opens its dashboard.
 
 ### Weather settings
+
+![Weather settings with masked API keys, station ID, and unit selection](images/settings.png)
 
 The gear icon opens an in-panel settings page for API keys, station/location selection, and units. **Save** applies the changes and refreshes the weather; **Cancel** or the close icon discards edits. Location searches show **Searching…** while resolving the location.
 
@@ -167,7 +189,7 @@ Weather refreshes run in the background while the widget is enabled, even with t
 Settings, including API keys, are saved in the local Omarchy shell configuration. Keep keys out of public repositories, screenshots, and shared configuration files. To stop the widget's background refreshes, disable it:
 
 ```bash
-omarchy plugin disable wunderground.extended
+omarchy plugin disable omarchy_pws_weather
 ```
 
 ## Troubleshooting

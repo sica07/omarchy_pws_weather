@@ -5,7 +5,7 @@ import qs.Ui
 
 BarWidget {
   id: root
-  moduleName: "wunderground.extended"
+  moduleName: "omarchy_pws_weather"
 
   readonly property var panelItem: panelLoader.item
   readonly property bool opened: panelItem ? panelItem.opened === true : false
@@ -51,7 +51,7 @@ BarWidget {
     anchors.fill: parent
     bar: root.bar
     text: root.panelItem ? root.panelItem.barLabel : "󰖐 —"
-    tooltipText: root.panelItem ? root.panelItem.barTooltip : "Wunderground Extended"
+    tooltipText: root.panelItem ? root.panelItem.barTooltip : "Omarchy PWS Weather"
     dimmed: root.panelItem ? root.panelItem.loading : false
 
     onPressed: function(code) {

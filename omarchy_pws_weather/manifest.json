@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "id": "wunderground.extended",
-  "name": "Wunderground Extended",
+  "id": "omarchy_pws_weather",
+  "name": "Omarchy PWS Weather",
   "version": "0.11.0",
   "author": "Omarchy port based on work by Rafal Liwoch and Kevin Donnelly",
   "license": "GPL-2.0-or-later",
-  "homepage": "https://github.com/rliwoch/plasmoid-wunderground-extended",
+  "homepage": "https://github.com/sica07/omarchy_pws_weather.git",
   "description": "Weather Underground PWS observations with a stationless Open-Meteo fallback for the Omarchy bar.",
   "kinds": [
     "bar-widget"
@@ -14,7 +14,7 @@
     "barWidget": "BarWidget.qml"
   },
   "barWidget": {
-    "displayName": "Wunderground Extended",
+    "displayName": "Omarchy PWS Weather",
     "description": "PWS observations, hourly outlook, and seven-day forecast",
     "category": "Info",
     "allowMultiple": false,

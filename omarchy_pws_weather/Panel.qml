@@ -8,7 +8,7 @@ import "WeatherModel.js" as WeatherModel
 
 Panel {
   id: root
-  moduleName: "wunderground.extended"
+  moduleName: "omarchy_pws_weather"
   manageIpc: false
 
   property var anchorItem: null

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "id": "wunderground.extended",
-  "name": "Wunderground Extended",
+  "id": "omarchy_pws_weather",
+  "name": "Omarchy PWS Weather",
   "version": "0.11.0",
   "author": "Omarchy port based on work by Rafal Liwoch and Kevin Donnelly",
   "license": "GPL-2.0-or-later",
@@ -14,7 +14,7 @@
     "barWidget": "BarWidget.qml"
   },
   "barWidget": {
-    "displayName": "Wunderground Extended",
+    "displayName": "Omarchy PWS Weather",
     "description": "PWS observations, hourly outlook, and seven-day forecast",
     "category": "Info",
     "allowMultiple": false,
