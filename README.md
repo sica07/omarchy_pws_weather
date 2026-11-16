@@ -30,7 +30,7 @@ With a Meteoblue key, the plugin requests the `basic-1h` and `basic-day` package
 ## Requirements and installation
 
 - Omarchy with the Quickshell-based `omarchy-shell` and schema-version-1 plugin support (originally developed for Omarchy 4).
-- `curl` and an internet connection for weather requests.
+- `curl`, Python 3 (standard library only), and an internet connection for weather requests.
 - A Weather Underground / Weather.com API key and station ID for PWS mode.
 - No API key for the default Open-Meteo mode or forecasts.
 - An optional Meteoblue API key for alternative forecasts.
@@ -43,6 +43,9 @@ For a downloaded copy, place the plugin files directly in:
 ├── BarWidget.qml
 ├── Panel.qml
 ├── WeatherModel.js
+├── WeatherRequest.qml
+├── helpers/
+│   └── secrets.py
 ├── README.md
 └── LICENSE
 ```
@@ -190,7 +193,11 @@ Traveling mode selects a nearby station instead of the configured home station w
 
 Weather refreshes run in the background while the widget is enabled, even with the popup closed. Requests use Weather.com for PWS data, Open-Meteo for default weather/forecasts and location searches, and Meteoblue when its key is configured. IP-based location uses `ipinfo.io` in Traveling mode or when no stationless location is saved. The relevant providers receive the station ID, location query, or coordinates needed for those requests.
 
-Settings, including API keys, are saved in the local Omarchy shell configuration. Keep keys out of public repositories, screenshots, and shared configuration files. To stop the widget's background refreshes, disable it:
+Ordinary settings are saved in the local Omarchy shell configuration. Enter both API keys through the popup's gear menu; they are stored separately in `~/.local/share/omarchy_pws_weather/secrets.json`. The plugin creates its credential directory with owner-only access (`700`) and the file with owner-only read/write access (`600`). Python 3 performs atomic writes and verifies the saved values before old inline keys are removed from `shell.json`.
+
+On the first refresh after upgrading, existing inline keys are migrated automatically. Values already present in the private store take precedence, including deliberately cleared keys. If loading or saving fails, the plugin reports an error and keeps the existing configuration. Fix the store's permissions or Python installation and refresh to retry. Old configuration backups are not modified; remove obsolete key copies from backups you share, and rotate previously exposed keys through the provider.
+
+Credential-bearing URLs are passed to `curl --config -` through stdin, never as process arguments. The plugin disables automatic curl configuration loading and avoids displaying provider error bodies that could echo credentials. This protects against other ordinary local accounts; it does not protect against root or software running as your own user. Keep keys out of public repositories, screenshots, and shared configuration files. The private store is outside the plugin repository and remains after uninstalling the plugin; delete it separately if you no longer need the credentials. To stop the widget's background refreshes, disable it:
 
 ```bash
 omarchy plugin disable omarchy_pws_weather

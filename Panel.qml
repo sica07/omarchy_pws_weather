@@ -41,14 +41,16 @@ Panel {
   property int iconCode: 44
   property double latitude: NaN
   property double longitude: NaN
+  property bool secretsReady: false
+  property var pendingSettings: null
   property bool initialized: false
   property bool fallbackLocated: false
   property var travelCandidates: []
   property int travelCandidateIndex: -1
 
   readonly property string configuredStationId: WeatherModel.trim(setting("stationId", ""))
-  readonly property string apiKey: WeatherModel.trim(setting("apiKey", ""))
-  readonly property string meteoblueApiKey: WeatherModel.trim(setting("meteoblueApiKey", ""))
+  property string apiKey: ""
+  property string meteoblueApiKey: ""
   readonly property string configuredOpenMeteoLocation: WeatherModel.trim(setting("openMeteoLocation", ""))
   readonly property string configuredOpenMeteoLatitudeRaw: WeatherModel.trim(setting("openMeteoLatitude", ""))
   readonly property string configuredOpenMeteoLongitudeRaw: WeatherModel.trim(setting("openMeteoLongitude", ""))
@@ -91,6 +93,7 @@ Panel {
   }
 
   function openSettingsPage() {
+    if (!secretsReady || secretsProcess.running) { refresh(true); return }
     draftStationId = configuredStationId
     draftApiKey = apiKey
     draftMeteoblueApiKey = meteoblueApiKey
@@ -102,6 +105,7 @@ Panel {
   }
 
   function saveSettingsPage() {
+    if (settingsSaving || !secretsReady || secretsProcess.running) return
     settingsError = ""
     var locationQuery = WeatherModel.trim(draftOpenMeteoLocation)
     if (WeatherModel.trim(draftApiKey) === "" && locationQuery !== ""
@@ -117,10 +121,10 @@ Panel {
     var next = {}
     Object.keys(settings || {}).forEach(function(key) { next[key] = settings[key] })
     next.stationId = WeatherModel.trim(draftStationId)
-    next.apiKey = WeatherModel.trim(draftApiKey)
-    next.meteoblueApiKey = WeatherModel.trim(draftMeteoblueApiKey)
+    delete next.apiKey
+    delete next.meteoblueApiKey
     next.units = draftUnits
-    if (next.apiKey === "") {
+    if (WeatherModel.trim(draftApiKey) === "") {
       if (locationResult) {
         next.openMeteoLocation = locationResult.name
         next.openMeteoLatitude = String(locationResult.latitude)
@@ -131,13 +135,67 @@ Panel {
         next.openMeteoLongitude = ""
       }
     }
+    pendingSettings = next
+    settingsSaving = true
+    startSecrets({ action: "save", secrets: {
+      apiKey: WeatherModel.trim(draftApiKey),
+      meteoblueApiKey: WeatherModel.trim(draftMeteoblueApiKey)
+    } })
+  }
+
+  function startSecrets(request) {
+    secretsProcess.request = JSON.stringify(request)
+    secretsProcess.reply = null
+    secretsProcess.stdinEnabled = true
+    secretsProcess.running = true
+  }
+
+  function applyPrivateSettings(value) {
+    var next = pendingSettings || Object.assign({}, settings || {})
+    delete next.apiKey
+    delete next.meteoblueApiKey
+    // Persist only after the private store has successfully saved and verified.
+    bar.shell.updateEntryInline(moduleName, next)
     settings = next
-    if (bar && bar.shell && typeof bar.shell.updateEntryInline === "function")
-      bar.shell.updateEntryInline(moduleName, next)
-    showSettingsPage = false
+    apiKey = value.apiKey
+    meteoblueApiKey = value.meteoblueApiKey
+    secretsReady = true
+    if (pendingSettings !== null) showSettingsPage = false
+    pendingSettings = null
+    draftApiKey = ""
+    draftMeteoblueApiKey = ""
     settingsSaving = false
     fallbackLocated = false
     Qt.callLater(function() { root.refresh(true) })
+  }
+
+  Process {
+    id: secretsProcess
+    property string request: ""
+    property var reply: null
+    command: ["python3", decodeURIComponent(Qt.resolvedUrl("helpers/secrets.py").toString().replace(/^file:\/\//, ""))]
+    onStarted: {
+      write(request)
+      request = ""
+      stdinEnabled = false
+    }
+    stdout: StdioCollector {
+      waitForEnd: true
+      onStreamFinished: secretsProcess.reply = WeatherModel.parseJson(text)
+    }
+    onExited: function(exitCode) {
+      var result = reply
+      reply = null
+      request = ""
+      if (exitCode === 0 && result && result.ok === true && result.secrets) {
+        root.applyPrivateSettings(result.secrets)
+      } else {
+        root.settingsSaving = false
+        root.pendingSettings = null
+        root.errorMessage = "Could not access the private API key store. Existing settings were kept. Check Python 3 and file permissions, then refresh."
+        root.settingsError = root.errorMessage
+      }
+    }
   }
 
   function settingValue(key, fallback) {
@@ -178,16 +236,27 @@ Panel {
   }
 
   function run(process, url, origin, allowErrorBody) {
-    if (process.running) process.running = false
-    var command = ["curl", allowErrorBody === true ? "-sS" : "-fsS", "--compressed", "--max-time", "12"]
+    if (process.running) return
+    var command = ["curl", "-q", allowErrorBody === true ? "-sS" : "-fsS", "--compressed", "--max-time", "12"]
     var requestOrigin = origin === undefined ? "https://www.wunderground.com" : origin
     if (requestOrigin) command.push("--header", "Origin: " + requestOrigin)
-    command.push(url)
+    command.push("--config", "-")
+    process.requestConfig = "url = " + JSON.stringify(url) + "\n"
+    process.stdinEnabled = true
     process.command = command
     process.running = true
   }
 
   function refresh(includeForecast) {
+    if (settingsSaving || secretsProcess.running) return
+    if (!bar || !bar.shell || typeof bar.shell.updateEntryInline !== "function") return
+    if (!secretsReady) {
+      startSecrets({ action: "load", legacy: {
+        apiKey: WeatherModel.trim(setting("apiKey", "")),
+        meteoblueApiKey: WeatherModel.trim(setting("meteoblueApiKey", ""))
+      } })
+      return
+    }
     initialized = true
     errorMessage = ""
     if (openMeteoFallback) {
@@ -338,7 +407,7 @@ Panel {
     onTriggered: root.updateHourlyCondition()
   }
 
-  Process {
+  WeatherRequest {
     id: geocodingProcess
     stdout: StdioCollector {
       waitForEnd: true
@@ -361,7 +430,7 @@ Panel {
     }
   }
 
-  Process {
+  WeatherRequest {
     id: currentProcess
     property bool fetchForecastAfter: false
     property bool noObservation: false
@@ -392,7 +461,7 @@ Panel {
     }
   }
 
-  Process {
+  WeatherRequest {
     id: fallbackCurrentProcess
     stdout: StdioCollector {
       waitForEnd: true
@@ -400,7 +469,7 @@ Panel {
         var payload = WeatherModel.parseJson(text)
         if (payload && payload.error === true) {
           root.loading = false
-          root.errorMessage = "Open-Meteo current conditions failed: " + String(payload.reason || payload.error_message || "the API rejected the request.")
+          root.errorMessage = "Open-Meteo rejected the current conditions request."
           return
         }
         var observation = WeatherModel.openMeteoCurrent(payload, root.unitsName, root.stationName)
@@ -424,7 +493,7 @@ Panel {
     }
   }
 
-  Process {
+  WeatherRequest {
     id: forecastProcess
     property string provider: "Open-Meteo"
     stdout: StdioCollector {
@@ -432,7 +501,7 @@ Panel {
       onStreamFinished: {
         var payload = WeatherModel.parseJson(text)
         if (payload && payload.error === true) {
-          root.errorMessage = forecastProcess.provider + " forecast failed: " + String(payload.error_message || payload.reason || "the API rejected the request.")
+          root.errorMessage = forecastProcess.provider + " rejected the forecast request. Check your API access and settings."
           return
         }
         if (forecastProcess.provider === "Meteoblue") {
@@ -467,7 +536,7 @@ Panel {
     }
   }
 
-  Process {
+  WeatherRequest {
     id: astronomyProcess
     stdout: StdioCollector {
       waitForEnd: true
@@ -479,7 +548,7 @@ Panel {
     }
   }
 
-  Process {
+  WeatherRequest {
     id: conditionsProcess
     stdout: StdioCollector {
       waitForEnd: true
@@ -493,7 +562,7 @@ Panel {
     }
   }
 
-  Process {
+  WeatherRequest {
     id: identityProcess
     stdout: StdioCollector {
       waitForEnd: true
@@ -504,7 +573,7 @@ Panel {
     }
   }
 
-  Process {
+  WeatherRequest {
     id: ipProcess
     stdout: StdioCollector {
       waitForEnd: true
@@ -526,7 +595,7 @@ Panel {
     onExited: function(exitCode) { if (exitCode !== 0) root.fail(root.openMeteoFallback ? "Local weather geolocation failed." : "Traveling mode geolocation failed.") }
   }
 
-  Process {
+  WeatherRequest {
     id: nearestProcess
     stdout: StdioCollector {
       waitForEnd: true
@@ -1229,7 +1298,7 @@ Panel {
               radius: Style.cornerRadius
               color: Color.accent
               opacity: root.settingsSaving ? 0.6 : 1
-              Text { anchors.centerIn: parent; text: root.settingsSaving ? "Searching…" : "Save"; color: Color.popups.background; font.bold: true }
+              Text { anchors.centerIn: parent; text: root.settingsSaving ? "Saving…" : "Save"; color: Color.popups.background; font.bold: true }
               MouseArea { anchors.fill: parent; enabled: !root.settingsSaving; cursorShape: Qt.PointingHandCursor; onClicked: root.saveSettingsPage() }
             }
 
