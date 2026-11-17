@@ -29,6 +29,8 @@ Panel {
   property string errorMessage: ""
   property var current: null
   property var hourly: []
+  property double hourlyClock: Date.now()
+  property string lastForecastHour: ""
   property var daily: []
   property var dailySupplement: []
   readonly property var threeHourly: WeatherModel.threeHourForecast(hourly)
@@ -79,6 +81,7 @@ Panel {
 
   function open() {
     controller.show()
+    checkHourlyRefresh()
     if (!initialized) refresh(true)
   }
 
@@ -203,6 +206,23 @@ Panel {
     return key in settings && settings[key] !== undefined && settings[key] !== null ? settings[key] : fallback
   }
 
+  function checkHourlyRefresh() {
+    var now = new Date()
+    var hour = WeatherModel.hourKey(now)
+    if (WeatherModel.hourKey(hourlyClock) !== hour) {
+      hourlyClock = now.getTime()
+      updateHourlyCondition()
+    }
+    if (hour === lastForecastHour || !secretsReady || settingsSaving || forecastProcess.running) return
+    if (isNaN(latitude) || isNaN(longitude)) {
+      lastForecastHour = hour
+      refresh(true)
+      return
+    }
+    // Forecast refresh must not depend on the PWS returning an observation.
+    fetchForecasts()
+  }
+
   function updateHourlyCondition() {
     var currentForecast = WeatherModel.currentHourlyForecast(hourly, new Date())
     if (!currentForecast) return
@@ -302,6 +322,10 @@ Panel {
   }
 
   function fetchCurrent(includeForecast) {
+    if (currentProcess.running) {
+      currentProcess.fetchForecastAfter = currentProcess.fetchForecastAfter || includeForecast === true
+      return
+    }
     currentProcess.fetchForecastAfter = includeForecast === true
     currentProcess.noObservation = false
     run(currentProcess, apiUrl("/v2/pws/observations/current", {
@@ -327,7 +351,8 @@ Panel {
   }
 
   function fetchForecasts() {
-    if (isNaN(latitude) || isNaN(longitude)) return
+    if (isNaN(latitude) || isNaN(longitude) || forecastProcess.running) return
+    lastForecastHour = WeatherModel.hourKey(new Date())
     if (!openMeteoFallback) {
       run(conditionsProcess, apiUrl("/v3/wx/observations/current", { geocode: latitude + "," + longitude, apiKey: apiKey, language: "en-US", units: unitsCode, format: "json" }))
       run(identityProcess, apiUrl("/v2/pwsidentity", { stationId: activeStationId, apiKey: apiKey, format: "json", units: unitsCode }))
@@ -401,10 +426,12 @@ Panel {
   }
 
   Timer {
-    interval: 60 * 1000
-    running: root.hourly.length > 0
+    // Check the wall clock so the refresh follows the hour boundary and resume.
+    // Network requests run only once per hour, not once per timer tick.
+    interval: 1000
+    running: true
     repeat: true
-    onTriggered: root.updateHourlyCondition()
+    onTriggered: root.checkHourlyRefresh()
   }
 
   WeatherRequest {
@@ -481,6 +508,7 @@ Panel {
         root.current = observation
         root.condition = observation.phrase
         root.iconCode = observation.iconCode
+        root.updateHourlyCondition()
         root.loading = false
         root.errorMessage = ""
       }
@@ -505,7 +533,7 @@ Panel {
           return
         }
         if (forecastProcess.provider === "Meteoblue") {
-          root.hourly = WeatherModel.meteoblueHourlyForecast(payload, root.unitsName)
+          root.hourly = WeatherModel.meteoblueHourlyForecast(payload, root.unitsName, new Date())
           root.daily = WeatherModel.mergeDailySupplement(WeatherModel.meteoblueDailyForecast(payload, root.unitsName), root.dailySupplement)
         } else {
           root.hourly = WeatherModel.openMeteoHourlyForecast(payload, root.unitsName)
@@ -557,6 +585,7 @@ Panel {
         if (payload) {
           root.condition = String(payload.wxPhraseLong || "")
           root.iconCode = Number(payload.iconCode === undefined ? root.iconCode : payload.iconCode)
+          root.updateHourlyCondition()
         }
       }
     }
@@ -862,6 +891,7 @@ Panel {
           Connections {
             target: root
             function onHourlyChanged() { temperatureGraph.requestPaint() }
+            function onHourlyClockChanged() { temperatureGraph.requestPaint() }
             function onUnitsNameChanged() { temperatureGraph.requestPaint() }
           }
 

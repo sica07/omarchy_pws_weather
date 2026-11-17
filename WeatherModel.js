@@ -286,11 +286,20 @@ function currentHourlyForecast(hourly, nowValue) {
   return latestElapsed || firstFuture || source[0]
 }
 
-function meteoblueHourlyForecast(payload, unitsName) {
+function hourKey(value) {
+  var date = new Date(value)
+  return date.getFullYear() + "-" + date.getMonth() + "-" + date.getDate() + "-" + date.getHours() + "-" + date.getTimezoneOffset()
+}
+
+function meteoblueHourlyForecast(payload, unitsName, nowValue) {
   var source = payload && payload.data_1h ? payload.data_1h : null
   var times = source && source.time ? source.time : []
   var out = []
-  for (var index = 0; index < Math.min(24, times.length); index++) {
+  var today = nowValue === undefined ? "" : normalizedForecastTime(new Date(nowValue).getFullYear() + "-"
+      + ("0" + (new Date(nowValue).getMonth() + 1)).slice(-2) + "-"
+      + ("0" + new Date(nowValue).getDate()).slice(-2))
+  for (var index = 0; index < Math.min(24 * 14, times.length) && out.length < 24; index++) {
+    if (today && normalizedForecastTime(times[index]).slice(0, 10) !== today) continue
     var pictocode = arrayValue(source, ["pictocode", "pictocode_detailed"], index)
     out.push({
       date: normalizedForecastTime(times[index]),

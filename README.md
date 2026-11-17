@@ -133,7 +133,7 @@ The **Now** tab plots up to 24 hourly forecast points:
 - Blue precipitation bars with forecast quantities below them.
 - Precipitation probabilities in a separate three-hour row below the graph.
 
-The graph is a forecast, not a history of your station's measurements.
+The graph is a forecast, not a history of your station's measurements. The weather icon and graph refresh automatically at each local hour boundary, even while the popup is closed, and catch up after suspend. This hourly refresh also runs when the configured forecast interval is longer than an hour; shorter intervals continue to apply. Meteoblue charts select the current day from the returned forecast.
 
 ### 7 days: daily forecast
 
