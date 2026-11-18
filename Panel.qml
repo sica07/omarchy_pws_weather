@@ -30,12 +30,13 @@ Panel {
   property var current: null
   property var hourly: []
   property double hourlyClock: Date.now()
+  property double warningClock: Date.now()
   property string lastForecastHour: ""
   property var daily: []
   property var dailySupplement: []
   readonly property var threeHourly: WeatherModel.threeHourForecast(hourly)
   readonly property var dailyTemperatureRange: WeatherModel.dailyTemperatureRange(daily)
-  readonly property string weatherWarning: WeatherModel.weatherWarning(current, hourly, unitsName)
+  readonly property string weatherWarning: WeatherModel.weatherWarning(current, hourly, unitsName, warningClock)
   readonly property var firstDaily: daily.length > 0 ? daily[0] : null
   property string activeStationId: ""
   property string stationName: ""
@@ -80,6 +81,7 @@ Panel {
   onTravelModeChanged: Qt.callLater(function() { root.fallbackLocated = false; root.refresh(true) })
 
   function open() {
+    warningClock = Date.now()
     controller.show()
     checkHourlyRefresh()
     if (!initialized) refresh(true)
@@ -409,6 +411,13 @@ Panel {
 
   function openStationDashboard() {
     if (activeStationId) Quickshell.execDetached(["xdg-open", "https://www.wunderground.com/dashboard/pws/" + activeStationId])
+  }
+
+  Timer {
+    interval: 60 * 1000
+    running: true
+    repeat: true
+    onTriggered: root.warningClock = Date.now()
   }
 
   Timer {

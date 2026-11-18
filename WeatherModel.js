@@ -536,7 +536,7 @@ function threeHourForecast(hourly) {
   return out
 }
 
-function weatherWarning(current, hourly, unitsName) {
+function weatherWarning(current, hourly, unitsName, nowValue) {
   var warnings = []
   var observation = current || {}
   var gust = Number(observation.windGust)
@@ -549,8 +549,15 @@ function weatherWarning(current, hourly, unitsName) {
   if (!isNaN(rainRate) && rainRate >= rainLimit) warnings.push("Heavy rain at the station")
   if (!isNaN(uv) && uv >= 8) warnings.push("Very high UV")
 
+  var now = nowValue === undefined ? Date.now() : new Date(nowValue).getTime()
+  if (!isFinite(now)) now = Date.now()
+  var hour = 60 * 60 * 1000
   var source = hourly || []
   for (var index = 0; index < Math.min(24, source.length); index++) {
+    var forecastTime = new Date(normalizedForecastTime(source[index].date)).getTime()
+    // Each hourly forecast is valid for one hour. Retained graph history must
+    // not keep expired warnings alive, even if the next network request fails.
+    if (!isFinite(forecastTime) || forecastTime + hour <= now || forecastTime >= now + 24 * hour) continue
     var phrase = String(source[index].phrase || "")
     var normalized = phrase.toLowerCase()
     if (normalized.indexOf("thunder") >= 0 || normalized.indexOf("freezing") >= 0 || normalized.indexOf("heavy rain") >= 0 || normalized.indexOf("heavy snow") >= 0) {

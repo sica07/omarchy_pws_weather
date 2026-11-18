@@ -164,10 +164,24 @@ const threeHourly = context.threeHourForecast(chartHours)
 assert(threeHourly.length === 8 && threeHourly[0].hours === 3, "three-hour forecast chunks")
 assert(threeHourly[1].phrase === "Rain" && threeHourly[1].rainChance === 80, "three-hour severe condition selection")
 assert(context.weatherWarning({ windGust: 65, precipRate: 0, uv: 2 }, [], "metric").indexOf("Strong gusts") >= 0, "live station warning")
-assert(context.weatherWarning(null, [{ phrase: "Thunderstorms", date: "2026-09-01T18:00" }], "metric").indexOf("18:00") >= 0, "forecast warning")
+assert(context.weatherWarning(null, [{ phrase: "Thunderstorms", date: "2026-09-01T18:00" }], "metric", "2026-09-01T17:00").indexOf("18:00") >= 0, "forecast warning")
 assert(context.weatherWarning({ windGust: 5, precipRate: 0, uv: 2 }, chartHours, "metric") === "", "no warning for ordinary weather")
 assert(context.weatherColor(12) === "#55aef0" && context.temperatureColor(0, 0, 30) !== context.temperatureColor(30, 0, 30), "semantic weather and temperature colors")
 const dailyRange = context.dailyTemperatureRange([{ low: 10, high: 22 }, { low: 7, high: 19 }, { low: 12, high: 25 }])
 assert(dailyRange.minimum === 7 && dailyRange.maximum === 25, "shared daily temperature range")
 
 console.log("WeatherModel tests passed")
+
+const expiredAlertHours = [
+  { phrase: "Thunderstorms", date: "2026-11-18T10:00" },
+  { phrase: "Clear", date: "2026-11-18T11:00" }
+]
+assert(context.weatherWarning(null, expiredAlertHours, "metric", "2026-11-18T10:59:59") !== "", "current hourly warning remains until its interval ends")
+assert(context.weatherWarning(null, expiredAlertHours, "metric", "2026-11-18T11:00") === "", "warning expires without new forecast data")
+assert(context.weatherWarning(null, expiredAlertHours, "metric", "2026-11-19T08:00") === "", "old warning disappears after suspend or network failure")
+assert(context.weatherWarning(null, expiredAlertHours.concat([{phrase: "Heavy snow", date: "2026-11-18T15:00"}]), "metric", "2026-11-18T11:00").indexOf("Heavy snow") >= 0, "expired warning does not hide a new upcoming warning")
+assert(context.weatherWarning(null, [{phrase: "Thunderstorms", date: "invalid"}], "metric", "2026-11-18T11:00") === "", "undated warnings cannot remain indefinitely")
+assert(context.weatherWarning(null, [{phrase: "Thunderstorms", date: "2026-11-19T11:00"}], "metric", "2026-11-18T11:00") === "", "forecast warning horizon is limited to the next 24 hours")
+assert(context.weatherWarning({windGust: 65}, expiredAlertHours, "metric", "2026-11-18T11:00").indexOf("Strong gusts") >= 0, "expired forecast does not remove a current station warning")
+assert(context.weatherWarning({windGust: 5, precipRate: 0, uv: 2}, expiredAlertHours, "metric", "2026-11-18T11:00") === "", "warning clears when latest station readings and forecast are normal")
+console.log("Weather warning expiry tests passed")

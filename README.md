@@ -119,7 +119,7 @@ Click **More** to expand the measurement rows:
 
 Availability depends on the station or provider; missing values appear as `—`. The fallback's precipitation value follows Open-Meteo's current-data interval, so the row labeled **Rain rate** should not be interpreted as a station rain-gauge measurement.
 
-A warning line can highlight strong gusts, heavy rain, high UV, or significant conditions in the hourly outlook. These are simple summaries calculated by the plugin, not an official weather-alert feed. Click **Less** to collapse the readings.
+A warning line can highlight strong gusts, heavy rain, high UV, or significant conditions in the hourly outlook. Forecast warnings cover the current hourly interval and upcoming conditions within 24 hours. They are recalculated every minute and when the popup opens, so expired forecast warnings disappear even without a new response. Station warnings follow the latest available measurements. These are simple summaries calculated by the plugin, not an official weather-alert feed. Click **Less** to collapse the readings.
 
 ### Now: hourly outlook
 
